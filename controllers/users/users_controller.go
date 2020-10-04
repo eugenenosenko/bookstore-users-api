@@ -2,6 +2,7 @@ package users
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 
@@ -11,18 +12,29 @@ import (
 )
 
 func GetUser(ctx *gin.Context) {
-	ctx.String(http.StatusNotImplemented, "this endpoint is not implemented")
+	userID, err := strconv.ParseInt(ctx.Param("user_id"), 10, 64)
+
+	if err != nil {
+		restErr := errors.NewBadRequestError("user id should be a number")
+		ctx.JSON(restErr.Status, restErr)
+		return
+	}
+
+	user, getErr := services.GetUser(userID)
+
+	if getErr != nil {
+		ctx.JSON(getErr.Status, getErr)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, user)
 }
 
 func CreateUsers(ctx *gin.Context) {
 	var user users.User
 
 	if err := ctx.ShouldBindJSON(&user); err != nil {
-		restErr := &errors.RestErr{
-			Message: "invalid json",
-			Status:  http.StatusBadRequest,
-			Error:   "bad_request",
-		}
+		restErr := errors.NewBadRequestError("invalid json")
 		ctx.JSON(restErr.Status, restErr)
 		return
 	}
